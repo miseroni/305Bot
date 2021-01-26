@@ -1,0 +1,39 @@
+#MenuTitle: Anchor Backup and Clone
+# -*- coding: utf-8 -*-
+
+# code by Viktor Mizera 2019 viktor.janousek@monotype.com
+
+__doc__="""
+Adds a value to both sidebearings and compensates the same value in kerning
+"""
+
+copyright = 'SB to KERN for GlyphsApp, Copyright by Monotype GmbH. %s' % datetime.date.today().strftime("%Y-%m-%d")
+
+
+myFont = Glyphs.font
+value = 200
+kernFeatureCode = ''
+
+for thisGlyph in myFont.glyphs:
+	for thisLayer in thisGlyph.layers:
+		thisLayer.LSB += value
+		thisLayer.RSB += value
+		kernFeatureCode += 'pos @Alles %s -%s;\n' %(thisGlyph.name, value*2)
+
+
+
+
+allFeatures = [  ]
+for feature in myFont.features:
+	allFeatures.append( feature.name )
+
+print (allFeatures)
+
+if 'kern' not in allFeatures:
+	myFont.features.append(GSFeature('kern', kernFeatureCode))
+	print ('added kern feature')
+
+else:
+	print ('kern feature already exists, please delete it and try again')
+	
+
