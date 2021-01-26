@@ -1,0 +1,343 @@
+# -*- coding: utf-8 -*-
+#MenuTitle: Typo305 🤖
+from __future__ import division, print_function, unicode_literals
+__doc__="""
+Sets the correct Names and values to instances for export to Typo305 publishing.
+"""
+# Author: Viktor Mizera 2021
+
+import GlyphsApp
+import time
+import math
+import vanilla
+
+#Shows and Clears the macro window
+Glyphs.clearLog()
+Glyphs.showMacroWindow()
+
+
+
+class TypoSet(object):
+	'''Initialize the dialog.'''
+
+
+	def __init__(self):
+		width = 400
+		height = 215
+		left = 15
+		right = width - (left * 2)
+		margin = 5
+		thisFontName = Glyphs.font.familyName
+		thisFontDesigner = Glyphs.font.designer
+		thisFontCopyright = Glyphs.font.copyright
+		thisFontManufacturer = Glyphs.font.manufacturer
+
+		self.thisFont = Glyphs.font
+
+
+		self.w = vanilla.FloatingWindow(
+			(width, height), # default window size
+			"305 corrention bot", # window title
+			autosaveName = "com.Viktor.TypoSet.mainwindow" # stores last window position and size
+		)
+
+		self.w.text_1 = vanilla.TextBox((left, 12, right, 22), "305 🤖 Correcting ‘%s’ by %s"%(thisFontName, thisFontDesigner), sizeStyle='regular')
+		self.w.text_2 = vanilla.TextBox((left, 30, right, 22), "ALPHA v0.03. Code by Viktor Mizera © 2021", sizeStyle='mini')
+
+		self.w.setNameTable = vanilla.CheckBox((left, 50 + margin, right - margin, 17), "Set the correct Name table values", value=False, callback=self.SavePreferences, sizeStyle='small')
+		tooltipText = "For font ‘%s’, selects and modifies the essential Name Table entries like:\nNID0 - Copyright: ‘%s’,\nNID8 - Manufacturer: '%s’. If Designer is not set, set default value 🤣" %(thisFontName, thisFontCopyright, thisFontManufacturer)
+		self.w.setNameTable.getNSButton().setToolTip_(tooltipText)
+		
+		self.w.customParameters = vanilla.CheckBox((left, 70 + margin, right - margin, 17), "Look for issues in Custom Parameters", value=False, callback=self.SavePreferences, sizeStyle='small')
+		tooltipText = "Looks for possible improvements in Info > Custom Parameters"
+		self.w.customParameters.getNSButton().setToolTip_(tooltipText)
+		
+		self.w.drawLogo = vanilla.CheckBox((left, 90 + margin, right - margin, 17), "Draw Umprum logo", value=False, callback=self.SavePreferences, sizeStyle='small')
+		tooltipText = "For font ‘%s’, Draws an Umprum logo into Apple character (U+F8FF), included at export " %thisFontName
+		self.w.drawLogo.getNSButton().setToolTip_(tooltipText)
+
+		self.w.setSubminimalSet = vanilla.CheckBox((left, 110 + margin, right - margin, 17), "Add missing glyphs from Subminimal Set", value=False, callback=self.SavePreferences, sizeStyle='small')
+		tooltipText = "For font ‘%s’, Generate all missing glyphs from T Subminimal Set, provided by Filip Blažek. It is generally good idea, to have at least this set included, when finishing or publishing font " %thisFontName
+		self.w.setSubminimalSet.getNSButton().setToolTip_(tooltipText)
+		
+		self.w.setUmprumTypeSet = vanilla.CheckBox((left, 130 + margin, right - margin, 17), "Add missing glyphs from UmprumType Set", value=False, callback=self.SavePreferences, sizeStyle='small')
+		tooltipText = "For font ‘%s’, Generate all missing glyphs from UmprumType set, provided by Viktor Mizera. This set includes T Subminimal set, all of European Languages, plus some extra characters, that doesnt require extra drawing. " %thisFontName
+		self.w.setUmprumTypeSet.getNSButton().setToolTip_(tooltipText)
+
+		self.w.sacrificeFont = vanilla.CheckBox((left, 150 + margin, right - margin, 17), "Sacrifice the Font to the Typo gods", value=False, callback=self.SavePreferences, sizeStyle='small')
+		tooltipText = "Sends the font to Solpera and other Czech Typo gods for evaluation. If the font does not pass the check, you can be ⚡️smited⚡️ from above, Beware!!!"
+		self.w.sacrificeFont.getNSButton().setToolTip_(tooltipText)
+		
+		self.w.cancelbutton = vanilla.Button((left, 180 + margin, right/2 - margin, 17), "Cancel", sizeStyle='small', callback=self.cancelCallback)
+		self.w.addbutton = vanilla.Button((width/2 + margin, 180 + margin, right/2 - margin, 17), "Grind the Gears", sizeStyle='small', callback=self.buttonCallback)
+
+		self.w.setDefaultButton( self.w.addbutton )
+
+		self.w.open()
+		self.w.center()
+
+
+
+	def cancelCallback(self, sender):
+		self.w.close()
+
+	def SavePreferences( self, sender=None ):
+		try:
+			# write current settings into preferences:
+			Glyphs.defaults["com.Viktor.TypoSet.setNameTable"] = self.w.setNameTable.get()
+			Glyphs.defaults["com.Viktor.TypoSet.customParameters"] = self.w.customParameters.get()
+			Glyphs.defaults["com.Viktor.TypoSet.drawLogo"] = self.w.drawLogo.get()
+			Glyphs.defaults["com.Viktor.TypoSet.setSubminimalSet"] = self.w.setSubminimalSet.get()
+			Glyphs.defaults["com.Viktor.TypoSet.setUmprumTypeSet"] = self.w.setUmprumTypeSet.get()
+			Glyphs.defaults["com.Viktor.TypoSet.sacrificeFont"] = self.w.sacrificeFont.get()
+			return True
+		except:
+			import traceback
+			print(traceback.format_exc())
+			return False
+
+	def LoadPreferences( self ):
+		try:
+			# register defaults:
+			Glyphs.registerDefault("com.Viktor.TypoSet.setNameTable", 0)
+			Glyphs.registerDefault("com.Viktor.TypoSet.customParameters", 0)
+			Glyphs.registerDefault("com.Viktor.TypoSet.drawLogo", 0)
+			Glyphs.registerDefault("com.Viktor.TypoSet.setSubminimalSet", 0)
+			Glyphs.registerDefault("com.Viktor.TypoSet.setUmprumTypeSet", 0)
+			Glyphs.registerDefault("com.Viktor.TypoSet.sacrificeFont", 0)
+			
+			# load previously written prefs:
+			self.w.setNameTable.set(Glyphs.defaults["com.Viktor.TypoSet.setNameTable"])
+			self.w.customParameters.set(Glyphs.defaults["com.Viktor.TypoSet.customParameters"])
+			self.w.drawLogo.set(Glyphs.defaults["com.Viktor.TypoSet.drawLogo"])
+			self.w.setSubminimalSet.set(Glyphs.defaults["com.Viktor.TypoSet.setSubminimalSet"])
+			self.w.setUmprumTypeSet.set(Glyphs.defaults["com.Viktor.TypoSet.setUmprumTypeSet"])
+			self.w.sacrificeFont.set(Glyphs.defaults["com.Viktor.TypoSet.sacrificeFont"])
+			return True
+		except:
+			import traceback
+			print(traceback.format_exc())
+			return False
+
+	def buttonCallback(self, SavePreferences):
+		try:
+			# clear macro window log:
+			Glyphs.clearLog()
+			# update settings to the latest user input:
+			if not self.SavePreferences():
+				print("Note: 'TypoSet' could not write preferences.")
+			
+			thisFont = Glyphs.font # frontmost font
+			if thisFont is None:
+				Message(title="🤭 No 305 Font Open", message="The script requires a font. \nOpen a font and run the script again.", OKButton=None)
+				return
+			else:
+				# Sets NameTable values
+				reporter = []
+				# Checks if the font have been saved
+				if thisFont.filepath:
+					print(thisFont.filepath)
+				else:
+					print("⚠️ The font file has not been saved yet.")
+					Message(title="🤭 Font not saved yet", message="The script requires a saved font file. \nPlease save the font and try again.", OKButton=None)
+					return
+				print()
+				
+				# read out user settings:
+				setNameTable = Glyphs.defaults["com.Viktor.TypoSet.setNameTable"]
+				drawLogo = Glyphs.defaults["com.Viktor.TypoSet.drawLogo"]
+				setSubminimalSet = Glyphs.defaults["com.Viktor.TypoSet.setSubminimalSet"]
+				setUmprumTypeSet = Glyphs.defaults["com.Viktor.TypoSet.setUmprumTypeSet"]
+				sacrificeFont = Glyphs.defaults["com.Viktor.TypoSet.sacrificeFont"]
+				
+				thisFontName = Glyphs.font.familyName
+				thisYear = time.localtime()[0]
+				thisMonth = time.localtime()[1]
+				thisDay = time.localtime()[2]
+				thisHour = time.localtime()[3]
+				thisMinute = time.localtime()[4]
+				thisMinuteFormat = time.localtime()[4]
+				#if thisMinuteFormat <= 10:
+					#thisMinute = thisMinuteFormat.zfill(0)
+				
+				#todayDate = '%s/%s/%s'(thisDay, thisMonth, thisYear)
+				
+				reportDesigner =''
+				reportFamilyName = ''
+				reportUPM = ''
+				addedCount = 0
+				
+				if thisFont:
+					if setNameTable:
+						# Sets NameTable values
+						if not thisFont.familyName:
+							thisFont.familyName = 'Radek Sidun'
+							reportFamilyName = '\n***Family name was not set, added default entry 🥸 *Insert funny joke here*'
+						else:
+							pass
+						
+						if not thisFont.upm == 1000:
+							reportUPM = '\n***UPM is not 1000, unless you intended otherwise, it should be set to 1000, could cause issues in Microsoft Apps'
+						
+						thisDesigner = thisFont.designer
+						if not thisDesigner:
+							thisFont.copyright = 'Copyright © Typo305 - %s. All rights reserved' %( thisYear)
+						else:
+							thisFont.copyright = 'Copyright © by %s and Typo305 - %s. All rights reserved' %(thisDesigner, thisYear)
+						
+						nameTableStatus = '\nName table corrected 🆗'
+						
+						if not thisFont.designer:
+							thisFont.designer = 'Radek Sidun'
+							reportDesigner ='\n***Designer was not set, added default entry. *Insert evil laugh here*'
+							thisFont.designerURL = 'www.typo305.cz'
+						else:
+							pass
+						thisFont.manufacturer = 'Typo305 – Umprum Prague'
+						thisFont.manufacturerURL = 'www.typo305.cz'
+						thisFont.date = NSDate.date()
+						
+						
+							
+					else:
+						nameTableStatus = ''
+				
+				if thisFont:
+					if setSubminimalSet:
+						# Generates the characters for T Subminimal set by Blažek
+						for x in ['A', 'Aacute', 'Abreve', 'Acircumflex', 'Adieresis', 'Agrave', 'Amacron', 'Aogonek', 'Aring', 'Atilde', 'AE', 'B', 'C', 'Cacute', 'Ccaron', 'Ccedilla', 'D', 'Eth', 'Dcaron', 'Dcroat', 'E', 'Eacute', 'Ecaron', 'Ecircumflex', 'Edieresis', 'Edotaccent', 'Egrave', 'Emacron', 'Eogonek', 'F', 'G', 'Gbreve', 'Gcommaaccent', 'H', 'I', 'Iacute', 'Icircumflex', 'Idieresis', 'Idotaccent', 'Igrave', 'Imacron', 'Iogonek', 'J', 'K', 'Kcommaaccent', 'L', 'Lacute', 'Lcaron', 'Lcommaaccent', 'Lslash', 'M', 'N', 'Nacute', 'Ncaron', 'Ncommaaccent', 'Ntilde', 'O', 'Oacute', 'Ocircumflex', 'Odieresis', 'Ograve', 'Ohungarumlaut', 'Omacron', 'Oslash', 'Otilde', 'OE', 'P', 'Thorn', 'Q', 'R', 'Racute', 'Rcaron', 'Rcommaaccent', 'S', 'Sacute', 'Scaron', 'Scedilla', 'Scommaaccent', 'T', 'Tcaron', 'Tcedilla', 'Tcommaaccent', 'U', 'Uacute', 'Ucircumflex', 'Udieresis', 'Ugrave', 'Uhungarumlaut', 'Umacron', 'Uogonek', 'Uring', 'V', 'W', 'X', 'Y', 'Yacute', 'Ydieresis', 'Z', 'Zacute', 'Zcaron', 'Zdotaccent', 'a', 'aacute', 'abreve', 'acircumflex', 'adieresis', 'agrave', 'amacron', 'aogonek', 'aring', 'atilde', 'ae', 'b', 'c', 'cacute', 'ccaron', 'ccedilla', 'd', 'eth', 'dcaron', 'dcroat', 'e', 'eacute', 'ecaron', 'ecircumflex', 'edieresis', 'edotaccent', 'egrave', 'emacron', 'eogonek', 'f', 'g', 'gbreve', 'gcommaaccent', 'h', 'i', 'idotless', 'iacute', 'icircumflex', 'idieresis', 'idotaccent', 'igrave', 'imacron', 'iogonek', 'j', 'k', 'kcommaaccent', 'l', 'lacute', 'lcaron', 'lcommaaccent', 'lslash', 'm', 'n', 'nacute', 'ncaron', 'ncommaaccent', 'ntilde', 'o', 'oacute', 'ocircumflex', 'odieresis', 'ograve', 'ohungarumlaut', 'omacron', 'oslash', 'otilde', 'oe', 'p', 'thorn', 'q', 'r', 'racute', 'rcaron', 'rcommaaccent', 's', 'sacute', 'scaron', 'scedilla', 'scommaaccent', 'germandbls', 't', 'tcaron', 'tcedilla', 'tcommaaccent', 'u', 'uacute', 'ucircumflex', 'udieresis', 'ugrave', 'uhungarumlaut', 'umacron', 'uogonek', 'uring', 'v', 'w', 'x', 'y', 'yacute', 'ydieresis', 'z', 'zacute', 'zcaron', 'zdotaccent', 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'period', 'acutecomb', 'brevecomb', 'caroncomb', 'caroncomb.alt', 'circumflexcomb', 'commaaccentcomb', 'dieresiscomb', 'dotaccentcomb', 'gravecomb', 'hungarumlautcomb', 'macroncomb', 'ringcomb', 'tildecomb', 'acutecomb.case', 'brevecomb.case', 'caroncomb.case', 'circumflexcomb.case', 'commaaccentcomb.case', 'dieresiscomb.case', 'dotaccentcomb.case', 'gravecomb.case', 'hungarumlautcomb.case', 'macroncomb.case', 'ringcomb.case', 'tildecomb.case', 'comma', 'colon', 'semicolon', 'ellipsis', 'exclam', 'exclamdown', 'question', 'questiondown', 'periodcentered', 'bullet', 'asterisk', 'numbersign', 'slash', 'backslash', 'parenleft', 'parenright', 'bracketleft', 'bracketright', 'hyphen', 'endash', 'emdash', 'underscore', 'quotesinglbase', 'quotedblbase', 'quotedblleft', 'quotedblright', 'quoteleft', 'quoteright', 'quotedbl', 'quotesingle', 'space', 'nbspace', '.notdef', 'cent', 'dollar', 'euro', 'plus', 'minus', 'multiply', 'divide', 'equal', 'percent', 'perthousand', 'at', 'ampersand', 'copyright', 'degree', 'bar', 'brokenbar', 'dagger']:
+							minus = thisFont.glyphs[x]
+							if not minus:
+								Glyphs.font.glyphs.append(GSGlyph(x))
+								addedCount += 1
+							else:
+								pass
+						setStatus = '\n%s Glyphs Generated 🆗'%addedCount
+					else:	
+						setStatus = ''
+					
+					if setUmprumTypeSet:
+					# Generates the characters for UmprumType set by Viktor Mizera
+						for x in ['A', 'Aacute', 'Abreve', 'Acircumflex', 'Adieresis', 'Agrave', 'Amacron', 'Aogonek', 'Aring', 'Atilde', 'AE', 'B', 'C', 'Cacute', 'Ccaron', 'Ccedilla', 'Ccircumflex', 'Cdotaccent', 'D', 'Eth', 'Dcaron', 'Dcroat', 'E', 'Eacute', 'Ecaron', 'Ecircumflex', 'Edieresis', 'Edotaccent', 'Egrave', 'Emacron', 'Eogonek', 'Etilde', 'F', 'G', 'Gbreve', 'Gcircumflex', 'Gcommaaccent', 'Gdotaccent', 'Gmacron', 'H', 'Hbar', 'Hcircumflex', 'I', 'IJ', 'Iacute', 'Icircumflex', 'Idieresis', 'Idotaccent', 'Igrave', 'Imacron', 'Iogonek', 'Itilde', 'J', 'Jacute', 'Jcircumflex', 'K', 'Kcommaaccent', 'L', 'Lacute', 'Lcaron', 'Lcommaaccent', 'Lslash', 'M', 'N', 'Nacute', 'Ncaron', 'Ncommaaccent', 'Ntilde', 'O', 'Oacute', 'Ocircumflex', 'Odieresis', 'Ograve', 'Ohungarumlaut', 'Omacron', 'Oslash', 'Otilde', 'OE', 'P', 'Thorn', 'Q', 'R', 'Racute', 'Rcaron', 'Rcommaaccent', 'S', 'Sacute', 'Saltillo', 'Scaron', 'Scedilla', 'Scircumflex', 'Scommaaccent', 'Germandbls', 'Schwa', 'T', 'Tcaron', 'Tcedilla', 'Tcommaaccent', 'U', 'Uacute', 'Ubreve', 'Ucircumflex', 'Udieresis', 'Ugrave', 'Uhungarumlaut', 'Umacron', 'Uogonek', 'Uring', 'Utilde', 'V', 'W', 'Wacute', 'Wcircumflex', 'Wdieresis', 'Wgrave', 'X', 'Y', 'Yacute', 'Ycircumflex', 'Ydieresis', 'Ygrave', 'Ytilde', 'Z', 'Zacute', 'Zcaron', 'Zdotaccent', 'Lcommaaccent.loclMAH', 'Ncommaaccent.loclMAH', 'a', 'aacute', 'abreve', 'acircumflex', 'adieresis', 'agrave', 'amacron', 'aogonek', 'aring', 'atilde', 'ae', 'b', 'c', 'cacute', 'ccaron', 'ccedilla', 'ccircumflex', 'cdotaccent', 'd', 'eth', 'dcaron', 'dcroat', 'e', 'eacute', 'ecaron', 'ecircumflex', 'edieresis', 'edotaccent', 'egrave', 'emacron', 'eogonek', 'etilde', 'schwa', 'f', 'g', 'gbreve', 'gcircumflex', 'gcommaaccent', 'gdotaccent', 'gmacron', 'h', 'hbar', 'hcircumflex', 'i', 'idotless', 'iacute', 'icircumflex', 'idieresis', 'idotaccent', 'igrave', 'ij', 'imacron', 'iogonek', 'itilde', 'j', 'jdotless', 'jacute', 'jcircumflex', 'k', 'kcommaaccent', 'l', 'lacute', 'lcaron', 'lcommaaccent', 'lslash', 'm', 'n', 'nacute', 'ncaron', 'ncommaaccent', 'ntilde', 'o', 'oacute', 'ocircumflex', 'odieresis', 'ograve', 'ohungarumlaut', 'omacron', 'oslash', 'otilde', 'oe', 'p', 'thorn', 'q', 'r', 'racute', 'rcaron', 'rcommaaccent', 's', 'sacute', 'saltillo', 'scaron', 'scedilla', 'scircumflex', 'scommaaccent', 'germandbls', 't', 'tcaron', 'tcedilla', 'tcommaaccent', 'u', 'uacute', 'ubreve', 'ucircumflex', 'udieresis', 'ugrave', 'uhungarumlaut', 'umacron', 'uogonek', 'uring', 'utilde', 'v', 'w', 'wacute', 'wcircumflex', 'wdieresis', 'wgrave', 'x', 'y', 'yacute', 'ycircumflex', 'ydieresis', 'ygrave', 'ytilde', 'z', 'zacute', 'zcaron', 'zdotaccent', 'lcommaaccent.loclMAH', 'ncommaaccent.loclMAH', 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', '.notdef', 'space', 'nbspace', 'period', 'comma', 'colon', 'semicolon', 'ellipsis', 'exclam', 'exclamdown', 'question', 'questiondown', 'periodcentered', 'bullet', 'asterisk', 'numbersign', 'slash', 'backslash', 'hyphen', 'endash', 'emdash', 'underscore', 'parenleft', 'parenright', 'braceleft', 'braceright', 'bracketleft', 'bracketright', 'quotesinglbase', 
+						'quotedblbase', 'quotedblleft', 'quotedblright', 'quoteleft', 'quoteright', 'guillemetleft', 'guillemetright', 'guilsinglleft', 'guilsinglright', 'quotedbl', 'quotesingle', 'at', 'ampersand', 'paragraph', 'section', 'copyright', 'registered', 'trademark', 'degree', 'bar', 'brokenbar', 'dagger', 'daggerdbl', 'cent', 'currency', 'dollar', 'euro', 'sterling', 'yen', 'plus', 'minus', 'multiply', 'divide', 'equal', 'notequal', 'greater', 'less', 'greaterequal', 'lessequal', 'plusminus', 'approxequal', 'asciitilde', 'logicalnot', 'asciicircum', 'infinity', 'integral', 'product', 'summation', 'radical', 'partialdiff', 'percent', 'perthousand', 'upArrow', 'northEastArrow', 'rightArrow', 'southEastArrow', 'downArrow', 'southWestArrow', 'leftArrow', 'northWestArrow', 'leftRightArrow', 'upDownArrow', 'dottedCircle', 'lozenge', 'dieresiscomb', 'dotaccentcomb', 'gravecomb', 'acutecomb', 'hungarumlautcomb', 'caroncomb.alt', 'circumflexcomb', 'caroncomb', 'brevecomb', 'ringcomb', 'tildecomb', 'macroncomb', 'commaturnedabovecomb', 'commaaccentcomb', 'cedillacomb', 'ogonekcomb', 'dieresiscomb.case', 'dotaccentcomb.case', 'gravecomb.case', 'acutecomb.case', 'hungarumlautcomb.case', 'circumflexcomb.case', 'caroncomb.case', 'brevecomb.case', 'ringcomb.case', 'tildecomb.case', 'macroncomb.case', 'commaaccentcomb.case', 'commaaccentcomb.loclMAH']:
+							minus = thisFont.glyphs[x]
+							if not minus:
+								Glyphs.font.glyphs.append(GSGlyph(x))
+								addedCount += 1
+							else:
+								pass
+								
+						setStatus = '\n%s Glyphs Generated 🆗 '%addedCount
+					else:
+						pass
+					
+					if drawLogo:
+						# Draws a logo in apple logo glyph
+						if thisFont.glyphs['.notdef']:
+							print ('already pRESENT!!!')
+						else:
+							new_glyph = GSGlyph('.notdef')
+							for m in this_font.masters:
+								if minus:
+									minus_thickness = minus.layers[m.id].bounds.size.height
+								else:
+									minus_thickness = thickness
+
+								if not minus_thickness:
+									minus_thickness = thickness
+
+								vertical_thickness = math.ceil(minus_thickness*1.02)
+								horizontal_thickness = minus_thickness
+								total_height = m.ascender
+								total_width = None
+								for x in ['.notdef']:
+									try:
+										total_width = this_font.glyphs[x].layers[m.id].bounds.size.width
+										break
+									except:
+										pass
+								if not total_width:
+									total_width = 400
+			
+								lsb = 0
+								rsb = 0
+
+								contours = []
+
+								glyph_nodes = [((0,0), GSLINE, 0)]
+								glyph_nodes.append(((60, 0), GSLINE, 0))
+								glyph_nodes.append(((60, 60), GSLINE, 0))
+								glyph_nodes.append(((0, 60), GSLINE, 0))
+								contours.append(glyph_nodes)
+
+								glyph_nodes = [((20, 20), GSLINE, 0)]
+								glyph_nodes.append(((80, 20), GSLINE, 0))
+								glyph_nodes.append(((80, 80), GSLINE, 0))
+								glyph_nodes.append(((20, 80), GSLINE, 0))
+								contours.append(reversed(glyph_nodes))
+
+
+
+								l = GSLayer()
+								l.width = total_width
+								l.associatedMasterId = m.id
+
+								for contour in contours:
+									p = GSPath()
+									p.closed = True
+
+									for node in contour:
+										coords, type, connection = node
+										x = int(coords[0])
+										y = int(coords[1])
+										n = GSNode(NSPoint(x, y))
+										n.type = type
+
+										p.nodes.append(n)
+		
+
+									l.paths.append(p)
+
+								l.LSB = lsb
+								l.RSB = rsb
+
+								new_glyph.layers[m.id] = l
+								new_glyph.updateGlyphInfo()
+						drawLogoStatus = '\nLogo drawn 🆗'
+					else:
+						drawLogoStatus = ''
+						
+					if sacrificeFont:
+						sacrificeFontStatus = '\nFont Sacrificed to Typo Gods 🆗'
+					else:
+						sacrificeFontStatus = ''
+				
+				reportSet = '\n***%s Glyphs Generated 🆗'%addedCount
+				if addedCount <= 1:
+					setStatus = '\nAll glyphs already present 🤓'
+					reportSet = '\n***Tried adding glyphs: All glyphs already present 🤓 Šprt alert!'
+				
+				# Reports
+				report = "~~🤖 beep~~\n\n 305 Correction Bot Report from %s/%s/%s, %s:%s for font %s%s%s%s%s%s%s \n\n ~~Iam just a little Alpha bot from Prague! Please be nice to me.~~" %(thisDay, thisMonth, thisYear, thisHour, thisMinute, thisFontName,reportFamilyName,reportDesigner, reportUPM, reportSet, drawLogoStatus, sacrificeFontStatus)
+				# Reports messages for Macro window
+				print (report)
+				# Adds report message into notes
+				thisFont.note = report
+				# Reports messages for info window
+				Message(title="Máš to hotový ty magore!", message="%s%s%s%s"%(nameTableStatus, sacrificeFontStatus, setStatus, drawLogoStatus), OKButton=None)
+			
+		
+		except Exception as e:
+			# brings macro window to front and reports error:
+			Glyphs.showMacroWindow()
+			print("TypoSet Error: %s" % e)
+			import traceback
+			print(traceback.format_exc())
+			print('~~🤖 sad beep... I have failed, but thats ok, it probably isnt your fault, please contact my creator Viktor Mizera at viktormizera@icloud.com and he will fix me. 🤖~~')
+
+		
+		#self.w.close()
+		#self.thisFont.enableUpdateInterface()
+
+
+TypoSet()
